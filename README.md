@@ -1,50 +1,58 @@
 # ShanDB
 
-A self-hosted PostgreSQL 17 instance managed by a small Node.js 22 supervisor. PostgreSQL is the database engine; Node.js handles first-run initialization, configuration validation, process lifecycle, and shutdown.
+ShanDB runs an actual PostgreSQL 17 server with a small Node.js 22 supervisor. Node.js is not a database engine; it initializes and supervises PostgreSQL, validates configuration, and exposes an optional health endpoint.
 
-## Status
+## Features
 
-Initial implementation. It expects the PostgreSQL 17 server binaries (`postgres` and `initdb`) to be installed in the runtime environment. The application does not bundle or emulate PostgreSQL.
+- Safe first-run PostgreSQL cluster initialization
+- Existing cluster version checks and protection against overwriting non-empty data directories
+- SCRAM-SHA-256 password authentication
+- TLS required for non-loopback listeners
+- Conservative resource defaults for a small 1.5-core instance
+- Startup readiness probe and optional HTTP health endpoints
+- Graceful shutdown with forced termination fallback
+- TypeScript configuration tests and GitHub Actions CI
 
 ## Requirements
 
-- Linux environment with PostgreSQL 17 server binaries available on `PATH`
-- Node.js 22 or newer
-- Persistent writable storage for `PGDATA`
-- A TLS certificate and private key when listening on a public interface
+- Linux with PostgreSQL 17 server binaries (`postgres` and `initdb`) on `PATH`
+- Node.js 22+
+- Unprivileged runtime user
+- Persistent writable volume for `PGDATA`
+- Raw TCP port forwarding for PostgreSQL
+- TLS certificate and private key files for public listeners
 
-## Run
-
-Install dependencies and build:
+## Build and run
 
 ```sh
 npm install
 npm run build
-```
-
-Configure the environment using `.env.example` as a reference, then start:
-
-```sh
 npm start
 ```
 
-The first start requires `POSTGRES_PASSWORD`. It is used to initialize the database superuser and is not stored in the repository. Existing data directories are never reinitialized.
+Set environment variables using [.env.example](.env.example). On first boot, set a strong `POSTGRES_PASSWORD`. The password is passed to `initdb` through a temporary mode-0600 file and is not committed to the repository.
 
-For a public listener, set `PG_LISTEN_ADDRESSES=*`, provide `POSTGRES_SSL_CERT` and `POSTGRES_SSL_KEY`, and expose the configured `PGPORT` through the hosting provider. Non-TLS remote connections are rejected by the generated host-based authentication rules.
+## Public deployment
 
-## Important deployment notes
+Set `PG_LISTEN_ADDRESSES=*`, `POSTGRES_SSL=on`, `POSTGRES_SSL_CERT`, and `POSTGRES_SSL_KEY`. Ensure the private key has mode 0600 or stricter. Forward the public TCP port assigned by the host to `PGPORT`.
 
-- Set `PGDATA` to Altare's persistent storage location. The default `./data/postgres` is only suitable if the application directory is persistent.
-- The hosting provider must permit the Node.js process to spawn native PostgreSQL executables.
-- The provider must route an external TCP port to `PGPORT`; a web-only HTTP port is not sufficient.
-- PostgreSQL must run as an unprivileged application user. Do not run it as root.
-- Back up the data directory using PostgreSQL-aware backup procedures. Do not copy a live data directory as an ordinary file backup.
-- This project does not expose an HTTP administration API.
+The generated host-based authentication rules reject non-TLS remote sessions and require SCRAM-SHA-256 for TLS sessions.
 
-## Environment
+## Health endpoints
 
-See [.env.example](.env.example) for supported settings and safe defaults.
+Set `HEALTH_PORT` to a host-accessible HTTP port. The supervisor exposes:
 
-## License
+- `GET /healthz` — process health
+- `GET /readyz` — PostgreSQL TCP listener readiness
 
-PostgreSQL is distributed under its own license. This supervisor is licensed under the MIT License.
+The health server is disabled when `HEALTH_PORT=0`.
+
+## Resource defaults
+
+The defaults are designed as a conservative starting point for 1.5 CPU cores and 6 GB RAM: 30 connections, 768 MB shared buffers, 3 GB effective cache estimate, 4 MB work memory, 128 MB maintenance work memory, and 512 MB maximum WAL size. These values must be tuned against real workload and disk constraints.
+
+## Critical platform limitations
+
+This application does not bundle PostgreSQL or install operating-system packages. The Generic Node.js runtime must provide the PostgreSQL 17 binaries and allow Node.js to spawn native child processes. The host must provide durable storage and raw TCP port mapping. If those conditions are not met, this platform cannot run a real PostgreSQL server.
+
+Use PostgreSQL-aware backups and test restores before storing important application data. Do not copy a live data directory as an ordinary file backup.

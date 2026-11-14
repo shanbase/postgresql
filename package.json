@@ -1,6 +1,6 @@
 {
   "name": "veyra-postgres",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "private": true,
   "description": "Self-contained PostgreSQL server bootstrapper for generic Node.js 22 hosts (Altare). Installs Postgres if missing, generates SSL certs, writes hardened config, supervises the process, and logs everything to the terminal.",
   "type": "module",

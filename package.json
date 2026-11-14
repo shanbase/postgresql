@@ -1,0 +1,24 @@
+{
+  "name": "veyra-postgres",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Self-contained PostgreSQL server bootstrapper for generic Node.js 22 hosts (Altare). Installs Postgres if missing, generates SSL certs, writes hardened config, supervises the process, and logs everything to the terminal.",
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "start": "node index.mjs",
+    "check": "node --check index.mjs"
+  },
+  "dependencies": {
+    "pg": "^8.13.0"
+  },
+  "optionalDependencies": {
+    "@embedded-postgres/linux-x64": "18.6.0-beta.19",
+    "@embedded-postgres/linux-arm64": "18.6.0-beta.19",
+    "@embedded-postgres/darwin-x64": "18.6.0-beta.19",
+    "@embedded-postgres/darwin-arm64": "18.6.0-beta.19",
+    "@embedded-postgres/windows-x64": "18.6.0-beta.19"
+  }
+}

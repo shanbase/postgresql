@@ -6,3 +6,4 @@ data/
 logs/
 .pg-credentials
 *.log
+certs/

@@ -62,7 +62,8 @@ async function main() {
   supervisor.launch();
   const ready = await supervisor.waitReady();
   if (ready) {
-    await supervisor.ensureDatabases(password, log);
+    if (!cfg.replica) await supervisor.ensureDatabases(password, log);
+    else log.info('boot', 'replica mode — skipping database bootstrap (read-only standby)');
     log.info('boot', `PostgreSQL is up — postgresql://${cfg.superuser}:***@<host>:${cfg.port}/`);
     if (cfg.ssl === 'on') log.info('boot', 'TLS enabled (self-signed cert — use sslmode=require or provide your own CA)');
   } else {
